@@ -10,6 +10,8 @@ class BackgroundMonitoringService {
     private let taskIdentifier = "com.omvadmin.servercheck"
     private let targetSSID = "DeadLock"
     private let monitoringEnabledKey = "backgroundMonitoringEnabled"
+    private let driveAlertEnabledKey = "driveAlertEnabled"
+    private let driveAlertThreshold = 90
     
     var isMonitoringEnabled: Bool {
         get {
@@ -22,6 +24,15 @@ class BackgroundMonitoringService {
             } else {
                 cancelBackgroundTask()
             }
+        }
+    }
+    
+    var isDriveAlertEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: driveAlertEnabledKey)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: driveAlertEnabledKey)
         }
     }
     
@@ -83,6 +94,12 @@ class BackgroundMonitoringService {
         
         if !isAvailable {
             await sendServerUnavailableNotification()
+            return
+        }
+        
+        // Check drive usage if enabled
+        if isDriveAlertEnabled {
+            await checkDriveUsage(ip: credentials.ip, port: credentials.port)
         }
     }
     
@@ -131,6 +148,105 @@ class BackgroundMonitoringService {
         }
     }
     
+    private func checkDriveUsage(ip: String, port: String) async {
+        do {
+            // Login first to get session token
+            guard let credentials = loadFullCredentials() else {
+                print("No credentials for drive check")
+                return
+            }
+            
+            let token = try await loginForBackgroundCheck(ip: ip, port: port, 
+                                                          username: credentials.username, 
+                                                          password: credentials.password)
+            
+            let fileSystems = try await getFileSystemsForBackgroundCheck(ip: ip, port: port, token: token)
+            
+            let fullDrives = fileSystems.filter { $0.percentage >= driveAlertThreshold }
+            
+            if !fullDrives.isEmpty {
+                await sendDriveFullNotification(drives: fullDrives)
+            }
+        } catch {
+            print("Failed to check drive usage: \(error)")
+        }
+    }
+    
+    private func loginForBackgroundCheck(ip: String, port: String, username: String, password: String) async throws -> String {
+        guard let url = URL(string: "http://\(ip):\(port)/rpc.php") else {
+            throw NSError(domain: "BackgroundMonitoring", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
+        }
+        
+        let params: [String: Any] = [
+            "service": "Session",
+            "method": "login",
+            "params": [
+                "username": username,
+                "password": password
+            ]
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: params)
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        guard let response = json?["response"] as? [String: Any],
+              let token = response["authenticated"] as? String ?? response["sessionid"] as? String else {
+            throw NSError(domain: "BackgroundMonitoring", code: -1, userInfo: [NSLocalizedDescriptionKey: "Login failed"])
+        }
+        
+        return token
+    }
+    
+    private func getFileSystemsForBackgroundCheck(ip: String, port: String, token: String) async throws -> [FileSystemStats] {
+        guard let url = URL(string: "http://\(ip):\(port)/rpc.php") else {
+            throw NSError(domain: "BackgroundMonitoring", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
+        }
+        
+        let params: [String: Any] = [
+            "service": "FileSystemMgmt",
+            "method": "enumerateMountedFilesystems",
+            "params": [
+                "start": 0,
+                "limit": -1
+            ]
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token, forHTTPHeaderField: "X-Openmediavault-Sessionid")
+        request.httpBody = try JSONSerialization.data(withJSONObject: params)
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        
+        guard let response = json?["response"] as? [String: Any],
+              let dataArray = response["data"] as? [[String: Any]] else {
+            return []
+        }
+        
+        return dataArray.compactMap { item in
+            guard let devicefile = item["devicefile"] as? String,
+                  let available = item["available"] as? String,
+                  let used = item["used"] as? String,
+                  let percentage = item["percentage"] as? Int else {
+                return nil
+            }
+            
+            return FileSystemStats(
+                name: devicefile,
+                total: available,
+                used: used,
+                percentage: percentage
+            )
+        }
+    }
+    
     private func sendServerUnavailableNotification() async {
         let content = UNMutableNotificationContent()
         content.title = "Server Unavailable"
@@ -146,9 +262,32 @@ class BackgroundMonitoringService {
         
         do {
             try await UNUserNotificationCenter.current().add(request)
-            print("Notification sent")
+            print("Server unavailable notification sent")
         } catch {
             print("Failed to send notification: \(error)")
+        }
+    }
+    
+    private func sendDriveFullNotification(drives: [FileSystemStats]) async {
+        let driveList = drives.map { "\($0.name) (\($0.percentage)%)" }.joined(separator: ", ")
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Drive Storage Alert"
+        content.body = "Drive(s) over 90% full: \(driveList)"
+        content.sound = .default
+        content.categoryIdentifier = "DRIVE_ALERT"
+        
+        let request = UNNotificationRequest(
+            identifier: "drive-full-\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: nil
+        )
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("Drive full notification sent for: \(driveList)")
+        } catch {
+            print("Failed to send drive notification: \(error)")
         }
     }
     
@@ -158,6 +297,31 @@ class BackgroundMonitoringService {
             return nil
         }
         return (ip, port)
+    }
+    
+    private func loadFullCredentials() -> (ip: String, port: String, username: String, password: String)? {
+        guard let ip = UserDefaults.standard.string(forKey: "serverIP"),
+              let port = UserDefaults.standard.string(forKey: "serverPort"),
+              let username = UserDefaults.standard.string(forKey: "username") else {
+            return nil
+        }
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "omv_password",
+            kSecReturnData as String: true
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess,
+              let passwordData = result as? Data,
+              let password = String(data: passwordData, encoding: .utf8) else {
+            return nil
+        }
+        
+        return (ip, port, username, password)
     }
     
     func requestNotificationPermissions() async -> Bool {

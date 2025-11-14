@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var connectionManager: ConnectionManager
     @State private var isMonitoringEnabled = BackgroundMonitoringService.shared.isMonitoringEnabled
+    @State private var isDriveAlertEnabled = BackgroundMonitoringService.shared.isDriveAlertEnabled
     @State private var showingPermissionAlert = false
     @State private var permissionGranted = false
     
@@ -38,6 +39,26 @@ struct SettingsView: View {
                         testNotification()
                     }
                     .font(.subheadline)
+                }
+            }
+            
+            Section(header: Text("Storage Alerts")) {
+                Toggle("Drive Full Alerts", isOn: $isDriveAlertEnabled)
+                    .onChange(of: isDriveAlertEnabled) { newValue in
+                        BackgroundMonitoringService.shared.isDriveAlertEnabled = newValue
+                    }
+                
+                if isDriveAlertEnabled {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Alert Threshold: 90%", systemImage: "externaldrive.fill.badge.exclamationmark")
+                            .foregroundColor(.orange)
+                            .font(.subheadline)
+                        
+                        Text("You'll receive a notification when any file system exceeds 90% capacity on the DeadLock network.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
                 }
             }
             

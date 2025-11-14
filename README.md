@@ -12,6 +12,7 @@ iOS app for managing OpenMediaVault servers on your local network.
 - Secure credential storage with auto-connect
 - Background monitoring: Checks server availability when connected to "DeadLock" WiFi
 - Push notifications when server becomes unavailable
+- Drive storage alerts: Notifications when any file system exceeds 90% capacity
 
 ## Setup
 
