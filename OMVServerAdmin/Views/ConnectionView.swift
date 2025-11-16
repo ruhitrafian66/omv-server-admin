@@ -14,7 +14,7 @@ struct ConnectionView: View {
                     TextField("IP Address", text: $ip)
                         .textContentType(.URL)
                         .autocapitalization(.none)
-                        .keyboardType(.decimalPad)
+                        .keyboardType(.numbersAndPunctuation)
                     
                     TextField("Port", text: $port)
                         .keyboardType(.numberPad)
