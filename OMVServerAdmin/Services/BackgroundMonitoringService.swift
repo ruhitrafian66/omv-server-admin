@@ -104,7 +104,7 @@ class BackgroundMonitoringService {
     }
     
     func cancelBackgroundTask() {
-        BGTaskScheduler.shared.cancel(taskIdentifier: taskIdentifier)
+        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
         print("Background task cancelled")
     }
     
