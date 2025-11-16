@@ -205,5 +205,3 @@ struct DashboardView: View {
         .cornerRadius(12)
     }
 }
-
-}

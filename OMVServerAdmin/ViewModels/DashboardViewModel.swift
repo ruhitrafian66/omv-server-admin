@@ -15,6 +15,7 @@ class DashboardViewModel: ObservableObject {
     private var cpuHistory: [CPUHistoryPoint] = []
     
     func startMonitoring() {
+        print("🚀 Starting dashboard monitoring...")
         refresh()
         
         timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
@@ -40,8 +41,11 @@ class DashboardViewModel: ObservableObject {
     }
     
     private func updateStats() async {
+        print("🔄 Starting stats update...")
         do {
+            print("📊 Fetching CPU stats...")
             let cpu = try await OMVAPIClient.shared.getCPUStats()
+            print("✅ CPU stats received: \(cpu.currentUsage)%")
             
             let historyPoint = CPUHistoryPoint(timestamp: Date(), usage: cpu.currentUsage)
             cpuHistory.append(historyPoint)
@@ -52,28 +56,37 @@ class DashboardViewModel: ObservableObject {
             
             self.cpuStats = CPUStats(currentUsage: cpu.currentUsage, history: cpuHistory)
             
+            print("💾 Fetching memory stats...")
             let memory = try await OMVAPIClient.shared.getMemoryStats()
+            print("✅ Memory stats received: \(memory.usedGB)GB / \(memory.totalGB)GB")
             self.memoryStats = memory
         } catch {
-            print("Error updating stats: \(error)")
+            print("❌ Error updating stats: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
         }
     }
     
     private func loadFileSystems() async {
+        print("💿 Fetching file systems...")
         do {
             let systems = try await OMVAPIClient.shared.getFileSystemStats()
+            print("✅ File systems received: \(systems.count) systems")
             self.fileSystems = systems
         } catch {
-            print("Error loading file systems: \(error)")
+            print("❌ Error loading file systems: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
         }
     }
     
     private func checkUpdates() async {
+        print("🔄 Checking for updates...")
         do {
             let info = try await OMVAPIClient.shared.checkUpdates()
+            print("✅ Update info received: \(info.count) updates available")
             self.updateInfo = info
         } catch {
-            print("Error checking updates: \(error)")
+            print("❌ Error checking updates: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
         }
     }
     
