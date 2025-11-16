@@ -139,6 +139,8 @@ class OMVAPIClient {
         
         request.httpBody = try JSONSerialization.data(withJSONObject: params)
         
+        print("📤 API Request: \(params["service"] as? String ?? "").\(params["method"] as? String ?? "")")
+        
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -146,6 +148,7 @@ class OMVAPIClient {
         }
         
         guard httpResponse.statusCode == 200 else {
+            print("❌ HTTP Error: \(httpResponse.statusCode)")
             throw OMVAPIError.serverError("HTTP \(httpResponse.statusCode)")
         }
         
@@ -153,8 +156,15 @@ class OMVAPIClient {
             throw OMVAPIError.invalidResponse
         }
         
+        // Debug: Print the response
+        if let jsonData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            print("📥 API Response: \(jsonString)")
+        }
+        
         if let error = json["error"] as? [String: Any],
            let message = error["message"] as? String {
+            print("❌ API Error: \(message)")
             throw OMVAPIError.serverError(message)
         }
         
