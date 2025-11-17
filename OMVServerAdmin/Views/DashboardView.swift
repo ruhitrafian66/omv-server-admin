@@ -166,7 +166,7 @@ struct DashboardView: View {
                                         .font(.system(size: 16))
                                         .foregroundColor(.green)
                                 }
-                            case .error(let message):
+                            case .error(_):
                                 HStack(spacing: 6) {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .foregroundColor(.red)
