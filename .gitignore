@@ -91,11 +91,18 @@ iOSInjectionProject/
 
 # macOS
 .DS_Store
+**/.DS_Store
 
 # Temporary files
 *.swp
 *.swo
 *~
+.*.swp
 
 # XcodeGen
 project.yml.lock
+
+# Documentation (temporary)
+FIX_*.md
+ICON_*.md
+CREATE_*.md
