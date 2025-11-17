@@ -100,9 +100,10 @@ class OMVAPIClient {
     }
     
     func checkUpdates() async throws -> UpdateInfo {
+        // OMV 7.x includes update info in System.getInformation
         let params: [String: Any] = [
-            "service": "Apt",
-            "method": "getUpgraded"
+            "service": "System",
+            "method": "getInformation"
         ]
         
         let response: [String: Any] = try await request(endpoint: "/rpc.php", params: params)
@@ -110,12 +111,24 @@ class OMVAPIClient {
     }
     
     func performUpdate() async throws {
+        // Note: Remote updates may be disabled in OMV for security
+        // This attempts to trigger an update, but may fail with 404 or permission error
         let params: [String: Any] = [
             "service": "Apt",
-            "method": "upgrade"
+            "method": "upgrade",
+            "params": [:]
         ]
         
-        _ = try await request(endpoint: "/rpc.php", params: params)
+        do {
+            _ = try await request(endpoint: "/rpc.php", params: params)
+            print("✅ Update initiated successfully")
+        } catch let error as OMVAPIError {
+            if case .serverError(let message) = error, message.contains("404") {
+                print("⚠️ Remote updates not available in this OMV version")
+                throw OMVAPIError.serverError("Remote updates are not available. Please update via OMV web interface or SSH.")
+            }
+            throw error
+        }
     }
     
     func shutdown() async throws {
@@ -339,11 +352,14 @@ class OMVAPIClient {
     }
     
     private func parseUpdateInfo(from response: [String: Any]) throws -> UpdateInfo {
-        guard let data = response["data"] as? [[String: Any]] else {
-            return UpdateInfo(available: false, count: 0, packages: [])
-        }
+        // OMV 7.x returns availablePkgUpdates in System.getInformation
+        let count = response["availablePkgUpdates"] as? Int ?? 0
+        print("🔍 Parsed Updates: \(count) available")
         
-        let packages = data.compactMap { $0["package"] as? String }
-        return UpdateInfo(available: !packages.isEmpty, count: packages.count, packages: packages)
+        return UpdateInfo(
+            available: count > 0,
+            count: count,
+            packages: [] // Package names not available in this API
+        )
     }
 }
