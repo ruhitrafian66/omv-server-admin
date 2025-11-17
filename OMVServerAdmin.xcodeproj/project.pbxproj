@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,6 +11,7 @@
 		06403DEF49648D7D7239A371 /* OMVAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06A5D61601D5B15BBE80F8A1 /* OMVAPIClient.swift */; };
 		14B14BEEE27B89A6CC6E2D2C /* BackgroundMonitoringService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E602CE8D2C3A5B18FD176C3C /* BackgroundMonitoringService.swift */; };
 		16222473FE14F41DA73AD89E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DDAF3647633423E3B970874 /* SettingsView.swift */; };
+		1D0F833B211A1EF427C8BA12 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0BA8489D1E77046829ADD48B /* Assets.xcassets */; };
 		1FD0299935F5C0BAC26D67CA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C340F6095653D9D13661AB7 /* ContentView.swift */; };
 		4F3601DEE9FC2492EFED5F54 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAF38A4DB33C75A9D7A4B00 /* DashboardViewModel.swift */; };
 		5F38FEB4E7A5BE047015C5D1 /* OMVServerAdminApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F377459D0322A7667239CB /* OMVServerAdminApp.swift */; };
@@ -23,13 +24,14 @@
 
 /* Begin PBXFileReference section */
 		06A5D61601D5B15BBE80F8A1 /* OMVAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OMVAPIClient.swift; sourceTree = "<group>"; };
+		0BA8489D1E77046829ADD48B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1DDAF3647633423E3B970874 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		26753D6D81C99E99E4ADB63B /* DataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataModels.swift; sourceTree = "<group>"; };
 		508B7AA9EC9182628E3CDCD7 /* ConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionView.swift; sourceTree = "<group>"; };
 		5DAF38A4DB33C75A9D7A4B00 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		7C340F6095653D9D13661AB7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		91994765DD7D1C10CA6F9E8E /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
-		B0115BCB24E5264698DD7B91 /* OMVServerAdmin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OMVServerAdmin.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0115BCB24E5264698DD7B91 /* OMVServerAdmin.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OMVServerAdmin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B7F377459D0322A7667239CB /* OMVServerAdminApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OMVServerAdminApp.swift; sourceTree = "<group>"; };
 		B9F4D11DA97A33EC2ECB405B /* CPUHistoryChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CPUHistoryChart.swift; sourceTree = "<group>"; };
 		C663AC56DF9B940974C086FF /* OMVServerAdmin.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OMVServerAdmin.entitlements; sourceTree = "<group>"; };
@@ -62,6 +64,7 @@
 		75EC433158B63C30139D7783 /* OMVServerAdmin */ = {
 			isa = PBXGroup;
 			children = (
+				0BA8489D1E77046829ADD48B /* Assets.xcassets */,
 				7C340F6095653D9D13661AB7 /* ContentView.swift */,
 				DC6773A1FE612D23C23D15ED /* Info.plist */,
 				C663AC56DF9B940974C086FF /* OMVServerAdmin.entitlements */,
@@ -125,6 +128,7 @@
 			buildConfigurationList = 86BBF50514524187D19D87FC /* Build configuration list for PBXNativeTarget "OMVServerAdmin" */;
 			buildPhases = (
 				ED1BACA61054E43EE6905E28 /* Sources */,
+				B6FC4B327B4B025E673D57F5 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -144,9 +148,10 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2610;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					BA7466C5C59E693E9F0768EF = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -160,6 +165,8 @@
 				en,
 			);
 			mainGroup = 1BE5396ECC6B65202133B97C;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -167,6 +174,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B6FC4B327B4B025E673D57F5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1D0F833B211A1EF427C8BA12 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		ED1BACA61054E43EE6905E28 /* Sources */ = {
@@ -198,6 +216,7 @@
 				CODE_SIGN_ENTITLEMENTS = OMVServerAdmin/OMVServerAdmin.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = OMVServerAdmin/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -245,10 +264,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = GBMAXL6F3B;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -269,7 +286,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;
@@ -311,10 +327,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = GBMAXL6F3B;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -328,7 +342,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
@@ -342,6 +355,7 @@
 				CODE_SIGN_ENTITLEMENTS = OMVServerAdmin/OMVServerAdmin.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = OMVServerAdmin/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
