@@ -7,17 +7,14 @@ struct DashboardView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
-                    serverInfoCard
-                    cpuCard
-                    memoryCard
+                VStack(spacing: 12) {
+                    cpuMemoryCard
                     fileSystemCard
-                    updatesCard
-                    powerControlCard
+                    updatesAndPowerCard
                 }
                 .padding()
             }
-            .navigationTitle("Server Dashboard")
+            .navigationTitle("Dashboard")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView()) {
@@ -39,168 +36,172 @@ struct DashboardView: View {
         }
     }
     
-    private var serverInfoCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Server")
-                .font(.headline)
-            Text("\(connectionManager.serverIP):\(connectionManager.serverPort)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private var cpuCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("CPU Usage")
-                .font(.headline)
-            
-            if let cpu = viewModel.cpuStats {
-                HStack {
-                    Text("\(Int(cpu.currentUsage))%")
-                        .font(.system(size: 36, weight: .bold))
-                    Spacer()
-                    CircularProgressView(progress: cpu.currentUsage / 100)
-                        .frame(width: 60, height: 60)
-                }
-                
-                if !cpu.history.isEmpty {
-                    CPUHistoryChart(history: cpu.history)
-                        .frame(height: 100)
-                }
-            } else {
-                ProgressView()
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private var memoryCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Memory Usage")
-                .font(.headline)
-            
-            if let memory = viewModel.memoryStats {
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text("\(Int(memory.usedPercentage))%")
-                            .font(.system(size: 36, weight: .bold))
-                        Text("\(String(format: "%.1f", memory.usedGB)) GB / \(String(format: "%.1f", memory.totalGB)) GB")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+    private var cpuMemoryCard: some View {
+        VStack(spacing: 0) {
+            // CPU Section
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("CPU")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    if let cpu = viewModel.cpuStats {
+                        Text("\(Int(cpu.currentUsage))%")
+                            .font(.system(size: 28, weight: .semibold))
+                    } else {
+                        ProgressView()
                     }
-                    Spacer()
-                    CircularProgressView(progress: memory.usedPercentage / 100)
-                        .frame(width: 60, height: 60)
                 }
-            } else {
-                ProgressView()
+                Spacer()
+                if let cpu = viewModel.cpuStats {
+                    CircularProgressView(progress: cpu.currentUsage / 100)
+                        .frame(width: 50, height: 50)
+                }
             }
+            .padding()
+            
+            Divider()
+            
+            // Memory Section
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Memory")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    if let memory = viewModel.memoryStats {
+                        Text("\(Int(memory.usedPercentage))%")
+                            .font(.system(size: 28, weight: .semibold))
+                        Text("\(String(format: "%.1f", memory.usedGB)) / \(String(format: "%.1f", memory.totalGB)) GB")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    } else {
+                        ProgressView()
+                    }
+                }
+                Spacer()
+                if let memory = viewModel.memoryStats {
+                    CircularProgressView(progress: memory.usedPercentage / 100)
+                        .frame(width: 50, height: 50)
+                }
+            }
+            .padding()
         }
-        .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
     
     private var fileSystemCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("File Systems")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Storage")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+                .padding(.top, 8)
             
             if viewModel.fileSystems.isEmpty && !viewModel.isLoading {
-                Text("No file systems found")
+                Text("No file systems")
+                    .font(.caption)
                     .foregroundColor(.secondary)
+                    .padding()
             } else {
                 ForEach(viewModel.fileSystems) { fs in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(spacing: 0) {
                         HStack {
-                            Text(fs.name)
-                                .font(.subheadline)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(fs.name.replacingOccurrences(of: "/dev/", with: ""))
+                                    .font(.subheadline)
+                                    .lineLimit(1)
+                                Text("\(fs.used) / \(fs.total)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
                             Spacer()
                             Text("\(fs.percentage)%")
-                                .font(.subheadline)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(fs.percentage >= 90 ? .red : fs.percentage >= 75 ? .orange : .primary)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        
+                        ProgressView(value: Double(fs.percentage), total: 100)
+                            .tint(fs.percentage >= 90 ? .red : fs.percentage >= 75 ? .orange : .blue)
+                            .padding(.horizontal)
+                            .padding(.bottom, 8)
+                        
+                        if fs.id != viewModel.fileSystems.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private var updatesAndPowerCard: some View {
+        VStack(spacing: 0) {
+            // Updates Section
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Updates")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    if let updates = viewModel.updateInfo {
+                        if updates.available {
+                            Text("\(updates.count) available")
+                                .font(.system(size: 20, weight: .semibold))
+                        } else {
+                            Text("Up to date")
+                                .font(.system(size: 16))
                                 .foregroundColor(.secondary)
                         }
-                        ProgressView(value: Double(fs.percentage), total: 100)
-                        Text("\(fs.used) used of \(fs.total)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    } else {
+                        ProgressView()
                     }
-                    .padding(.vertical, 4)
+                }
+                Spacer()
+                if let updates = viewModel.updateInfo, updates.available {
+                    Button("Update") {
+                        viewModel.performUpdate()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(viewModel.isUpdating)
                 }
             }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private var updatesCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("System Updates")
-                .font(.headline)
+            .padding()
             
-            if let updates = viewModel.updateInfo {
-                if updates.available {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("\(updates.count) updates available")
-                                .font(.subheadline)
-                            if !updates.packages.isEmpty {
-                                Text(updates.packages.prefix(3).joined(separator: ", "))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(2)
-                            }
-                        }
-                        Spacer()
-                        Button("Update") {
-                            viewModel.performUpdate()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(viewModel.isUpdating)
-                    }
-                } else {
-                    Text("System is up to date")
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                ProgressView()
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private var powerControlCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Power Control")
-                .font(.headline)
+            Divider()
             
-            HStack(spacing: 12) {
-                Button(action: { viewModel.rebootServer() }) {
-                    Label("Restart", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .disabled(viewModel.isPowerActionInProgress)
+            // Power Control Section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Power")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
                 
-                Button(action: { viewModel.shutdownServer() }) {
-                    Label("Shutdown", systemImage: "power")
-                        .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    Button(action: { viewModel.rebootServer() }) {
+                        Label("Restart", systemImage: "arrow.clockwise")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(viewModel.isPowerActionInProgress)
+                    
+                    Button(action: { viewModel.shutdownServer() }) {
+                        Label("Shutdown", systemImage: "power")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.red)
+                    .disabled(viewModel.isPowerActionInProgress)
                 }
-                .buttonStyle(.bordered)
-                .tint(.red)
-                .disabled(viewModel.isPowerActionInProgress)
             }
+            .padding()
         }
-        .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }
