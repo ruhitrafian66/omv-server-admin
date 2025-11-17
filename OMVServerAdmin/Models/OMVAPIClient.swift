@@ -52,7 +52,6 @@ class OMVAPIClient {
         }
         
         sessionToken = token
-        print("✅ Logged in successfully, session token: \(token.prefix(10))...")
         return token
     }
     
@@ -61,7 +60,6 @@ class OMVAPIClient {
             throw OMVAPIError.authenticationFailed
         }
         
-        print("🔄 Session expired, re-authenticating...")
         _ = try await login(ip: creds.ip, port: creds.port, username: creds.username, password: creds.password)
     }
     
@@ -121,10 +119,8 @@ class OMVAPIClient {
         
         do {
             _ = try await request(endpoint: "/rpc.php", params: params)
-            print("✅ Update initiated successfully")
         } catch let error as OMVAPIError {
             if case .serverError(let message) = error, message.contains("404") {
-                print("⚠️ Remote updates not available in this OMV version")
                 throw OMVAPIError.serverError("Remote updates are not available. Please update via OMV web interface or SSH.")
             }
             throw error
@@ -164,8 +160,6 @@ class OMVAPIClient {
         
         request.httpBody = try JSONSerialization.data(withJSONObject: params)
         
-        print("📤 API Request: \(params["service"] as? String ?? "").\(params["method"] as? String ?? "")")
-        
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -174,7 +168,6 @@ class OMVAPIClient {
         
         // Handle 401 Unauthorized - session expired
         if httpResponse.statusCode == 401 && authenticated {
-            print("⚠️ Session expired (401), attempting to re-authenticate...")
             try await reAuthenticate()
             
             // Retry the request with new token
@@ -189,7 +182,6 @@ class OMVAPIClient {
             }
             
             guard retryHttpResponse.statusCode == 200 else {
-                print("❌ HTTP Error after retry: \(retryHttpResponse.statusCode)")
                 throw OMVAPIError.serverError("HTTP \(retryHttpResponse.statusCode)")
             }
             
@@ -199,7 +191,6 @@ class OMVAPIClient {
             
             if let error = retryJson["error"] as? [String: Any],
                let message = error["message"] as? String {
-                print("❌ API Error: \(message)")
                 throw OMVAPIError.serverError(message)
             }
             
@@ -207,7 +198,6 @@ class OMVAPIClient {
         }
         
         guard httpResponse.statusCode == 200 else {
-            print("❌ HTTP Error: \(httpResponse.statusCode)")
             throw OMVAPIError.serverError("HTTP \(httpResponse.statusCode)")
         }
         
@@ -215,15 +205,8 @@ class OMVAPIClient {
             throw OMVAPIError.invalidResponse
         }
         
-        // Debug: Print the response
-        if let jsonData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            print("📥 API Response: \(jsonString)")
-        }
-        
         if let error = json["error"] as? [String: Any],
            let message = error["message"] as? String {
-            print("❌ API Error: \(message)")
             throw OMVAPIError.serverError(message)
         }
         
@@ -255,7 +238,6 @@ class OMVAPIClient {
         
         // Handle 401 Unauthorized - session expired
         if httpResponse.statusCode == 401 && authenticated {
-            print("⚠️ Session expired (401), attempting to re-authenticate...")
             try await reAuthenticate()
             
             // Retry the request with new token
@@ -270,7 +252,6 @@ class OMVAPIClient {
             }
             
             guard retryHttpResponse.statusCode == 200 else {
-                print("❌ HTTP Error after retry: \(retryHttpResponse.statusCode)")
                 throw OMVAPIError.serverError("HTTP \(retryHttpResponse.statusCode)")
             }
             
@@ -280,7 +261,6 @@ class OMVAPIClient {
             
             if let error = retryJson["error"] as? [String: Any],
                let message = error["message"] as? String {
-                print("❌ API Error: \(message)")
                 throw OMVAPIError.serverError(message)
             }
             
@@ -288,7 +268,6 @@ class OMVAPIClient {
         }
         
         guard httpResponse.statusCode == 200 else {
-            print("❌ HTTP Error: \(httpResponse.statusCode)")
             throw OMVAPIError.serverError("HTTP \(httpResponse.statusCode)")
         }
         
@@ -307,7 +286,6 @@ class OMVAPIClient {
     
     private func parseCPUStats(from response: [String: Any]) throws -> CPUStats {
         let cpuUsage = response["cpuUtilization"] as? Double ?? 0.0
-        print("🔍 Parsed CPU: \(cpuUsage)%")
         return CPUStats(currentUsage: cpuUsage, history: [])
     }
     
@@ -319,29 +297,23 @@ class OMVAPIClient {
         let memTotal = Int64(memTotalStr) ?? 0
         let memUsed = Int64(memUsedStr) ?? 0
         
-        print("🔍 Parsed Memory: \(memUsed) / \(memTotal) bytes")
         return MemoryStats(total: memTotal, used: memUsed)
     }
     
     private func parseFileSystemStats(from response: Any) throws -> [FileSystemStats] {
         // OMV returns file systems as an array
         guard let data = response as? [[String: Any]] else {
-            print("🔍 File systems response is not an array, got: \(type(of: response))")
             return []
         }
-        
-        print("🔍 Parsing \(data.count) file systems")
         
         return data.compactMap { item in
             guard let devicefile = item["devicefile"] as? String,
                   let available = item["available"] as? String,
                   let used = item["used"] as? String,
                   let percentage = item["percentage"] as? Int else {
-                print("🔍 Skipping file system - missing fields")
                 return nil
             }
             
-            print("🔍 Found file system: \(devicefile) at \(percentage)%")
             return FileSystemStats(
                 name: devicefile,
                 total: available,
@@ -354,7 +326,6 @@ class OMVAPIClient {
     private func parseUpdateInfo(from response: [String: Any]) throws -> UpdateInfo {
         // OMV 7.x returns availablePkgUpdates in System.getInformation
         let count = response["availablePkgUpdates"] as? Int ?? 0
-        print("🔍 Parsed Updates: \(count) available")
         
         return UpdateInfo(
             available: count > 0,

@@ -48,12 +48,7 @@ class BackgroundMonitoringService {
         let request = BGAppRefreshTaskRequest(identifier: taskIdentifier)
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 minutes
         
-        do {
-            try BGTaskScheduler.shared.submit(request)
-            print("Background task scheduled")
-        } catch {
-            print("Could not schedule background task: \(error)")
-        }
+        try? BGTaskScheduler.shared.submit(request)
     }
     
     private func handleBackgroundTask(task: BGAppRefreshTask) {
@@ -70,22 +65,9 @@ class BackgroundMonitoringService {
     }
     
     private func performServerCheck() async {
-        guard isMonitoringEnabled else {
-            print("Background monitoring is disabled")
-            return
-        }
-        
-        guard await isConnectedToTargetWiFi() else {
-            print("Not connected to \(targetSSID)")
-            return
-        }
-        
-        print("Connected to \(targetSSID), checking server...")
-        
-        guard let credentials = loadCredentials() else {
-            print("No saved credentials")
-            return
-        }
+        guard isMonitoringEnabled else { return }
+        guard await isConnectedToTargetWiFi() else { return }
+        guard let credentials = loadCredentials() else { return }
         
         let isAvailable = await checkServerAvailability(
             ip: credentials.ip,
@@ -105,7 +87,6 @@ class BackgroundMonitoringService {
     
     func cancelBackgroundTask() {
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
-        print("Background task cancelled")
     }
     
     private func isConnectedToTargetWiFi() async -> Bool {
@@ -143,19 +124,14 @@ class BackgroundMonitoringService {
             }
             return false
         } catch {
-            print("Server check failed: \(error)")
             return false
         }
     }
     
     private func checkDriveUsage(ip: String, port: String) async {
+        guard let credentials = loadFullCredentials() else { return }
+        
         do {
-            // Login first to get session token
-            guard let credentials = loadFullCredentials() else {
-                print("No credentials for drive check")
-                return
-            }
-            
             let token = try await loginForBackgroundCheck(ip: ip, port: port, 
                                                           username: credentials.username, 
                                                           password: credentials.password)
@@ -168,7 +144,7 @@ class BackgroundMonitoringService {
                 await sendDriveFullNotification(drives: fullDrives)
             }
         } catch {
-            print("Failed to check drive usage: \(error)")
+            // Silently fail
         }
     }
     
@@ -260,12 +236,7 @@ class BackgroundMonitoringService {
             trigger: nil
         )
         
-        do {
-            try await UNUserNotificationCenter.current().add(request)
-            print("Server unavailable notification sent")
-        } catch {
-            print("Failed to send notification: \(error)")
-        }
+        try? await UNUserNotificationCenter.current().add(request)
     }
     
     private func sendDriveFullNotification(drives: [FileSystemStats]) async {
@@ -283,12 +254,7 @@ class BackgroundMonitoringService {
             trigger: nil
         )
         
-        do {
-            try await UNUserNotificationCenter.current().add(request)
-            print("Drive full notification sent for: \(driveList)")
-        } catch {
-            print("Failed to send drive notification: \(error)")
-        }
+        try? await UNUserNotificationCenter.current().add(request)
     }
     
     private func loadCredentials() -> (ip: String, port: String)? {
@@ -330,7 +296,6 @@ class BackgroundMonitoringService {
                 .requestAuthorization(options: [.alert, .sound, .badge])
             return granted
         } catch {
-            print("Notification permission error: \(error)")
             return false
         }
     }
@@ -347,11 +312,6 @@ class BackgroundMonitoringService {
             trigger: nil
         )
         
-        do {
-            try await UNUserNotificationCenter.current().add(request)
-            print("Test notification sent")
-        } catch {
-            print("Failed to send test notification: \(error)")
-        }
+        try? await UNUserNotificationCenter.current().add(request)
     }
 }
