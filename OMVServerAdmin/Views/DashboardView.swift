@@ -141,32 +141,69 @@ struct DashboardView: View {
     private var updatesAndPowerCard: some View {
         VStack(spacing: 0) {
             // Updates Section
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Updates")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    if let updates = viewModel.updateInfo {
-                        if updates.available {
-                            Text("\(updates.count) available")
-                                .font(.system(size: 20, weight: .semibold))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Updates")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        if viewModel.isUpdating {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Updating...")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.blue)
+                            }
+                        } else if let status = viewModel.updateStatus {
+                            switch status {
+                            case .success:
+                                HStack(spacing: 6) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("Updated")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.green)
+                                }
+                            case .error(let message):
+                                HStack(spacing: 6) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.red)
+                                    Text("Failed")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.red)
+                                }
+                            }
+                        } else if let updates = viewModel.updateInfo {
+                            if updates.available {
+                                Text("\(updates.count) available")
+                                    .font(.system(size: 20, weight: .semibold))
+                            } else {
+                                Text("Up to date")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.secondary)
+                            }
                         } else {
-                            Text("Up to date")
-                                .font(.system(size: 16))
-                                .foregroundColor(.secondary)
+                            ProgressView()
                         }
-                    } else {
-                        ProgressView()
+                    }
+                    Spacer()
+                    if !viewModel.isUpdating, viewModel.updateStatus == nil, let updates = viewModel.updateInfo, updates.available {
+                        Button("Update") {
+                            viewModel.performUpdate()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
                 }
-                Spacer()
-                if let updates = viewModel.updateInfo, updates.available {
-                    Button("Update") {
-                        viewModel.performUpdate()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .disabled(viewModel.isUpdating)
+                
+                // Show error details if available
+                if case .error(let message) = viewModel.updateStatus {
+                    Text(message)
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                        .lineLimit(2)
                 }
             }
             .padding()

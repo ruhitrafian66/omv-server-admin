@@ -10,6 +10,12 @@ class DashboardViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isUpdating = false
     @Published var isPowerActionInProgress = false
+    @Published var updateStatus: UpdateStatus?
+    
+    enum UpdateStatus {
+        case success
+        case error(String)
+    }
     
     private var timer: Timer?
     private var cpuHistory: [CPUHistoryPoint] = []
@@ -93,12 +99,30 @@ class DashboardViewModel: ObservableObject {
     func performUpdate() {
         Task {
             isUpdating = true
+            updateStatus = nil
+            
             do {
+                print("🔄 Starting system update...")
                 try await OMVAPIClient.shared.performUpdate()
+                print("✅ Update completed successfully")
+                updateStatus = .success
+                
+                // Wait a moment then check for new updates
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                 await checkUpdates()
+                
+                // Clear success message after 5 seconds
+                try await Task.sleep(nanoseconds: 3_000_000_000) // 3 more seconds
+                updateStatus = nil
             } catch {
-                print("Error performing update: \(error)")
+                print("❌ Error performing update: \(error)")
+                updateStatus = .error(error.localizedDescription)
+                
+                // Clear error message after 10 seconds
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                updateStatus = nil
             }
+            
             isUpdating = false
         }
     }
