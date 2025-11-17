@@ -28,11 +28,13 @@ class OMVAPIClient {
     
     private var baseURL: String = ""
     private var sessionToken: String?
+    private var savedCredentials: (ip: String, port: String, username: String, password: String)?
     
     private init() {}
     
     func login(ip: String, port: String, username: String, password: String) async throws -> String {
         baseURL = "http://\(ip):\(port)"
+        savedCredentials = (ip, port, username, password)
         
         let params: [String: Any] = [
             "service": "Session",
@@ -50,7 +52,17 @@ class OMVAPIClient {
         }
         
         sessionToken = token
+        print("✅ Logged in successfully, session token: \(token.prefix(10))...")
         return token
+    }
+    
+    private func reAuthenticate() async throws {
+        guard let creds = savedCredentials else {
+            throw OMVAPIError.authenticationFailed
+        }
+        
+        print("🔄 Session expired, re-authenticating...")
+        _ = try await login(ip: creds.ip, port: creds.port, username: creds.username, password: creds.password)
     }
     
     func getCPUStats() async throws -> CPUStats {
@@ -147,6 +159,40 @@ class OMVAPIClient {
             throw OMVAPIError.invalidResponse
         }
         
+        // Handle 401 Unauthorized - session expired
+        if httpResponse.statusCode == 401 && authenticated {
+            print("⚠️ Session expired (401), attempting to re-authenticate...")
+            try await reAuthenticate()
+            
+            // Retry the request with new token
+            if let token = sessionToken {
+                request.setValue(token, forHTTPHeaderField: "X-Openmediavault-Sessionid")
+            }
+            
+            let (retryData, retryResponse) = try await URLSession.shared.data(for: request)
+            
+            guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
+                throw OMVAPIError.invalidResponse
+            }
+            
+            guard retryHttpResponse.statusCode == 200 else {
+                print("❌ HTTP Error after retry: \(retryHttpResponse.statusCode)")
+                throw OMVAPIError.serverError("HTTP \(retryHttpResponse.statusCode)")
+            }
+            
+            guard let retryJson = try JSONSerialization.jsonObject(with: retryData) as? [String: Any] else {
+                throw OMVAPIError.invalidResponse
+            }
+            
+            if let error = retryJson["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                print("❌ API Error: \(message)")
+                throw OMVAPIError.serverError(message)
+            }
+            
+            return retryJson["response"] as? [String: Any] ?? retryJson
+        }
+        
         guard httpResponse.statusCode == 200 else {
             print("❌ HTTP Error: \(httpResponse.statusCode)")
             throw OMVAPIError.serverError("HTTP \(httpResponse.statusCode)")
@@ -192,6 +238,40 @@ class OMVAPIClient {
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw OMVAPIError.invalidResponse
+        }
+        
+        // Handle 401 Unauthorized - session expired
+        if httpResponse.statusCode == 401 && authenticated {
+            print("⚠️ Session expired (401), attempting to re-authenticate...")
+            try await reAuthenticate()
+            
+            // Retry the request with new token
+            if let token = sessionToken {
+                request.setValue(token, forHTTPHeaderField: "X-Openmediavault-Sessionid")
+            }
+            
+            let (retryData, retryResponse) = try await URLSession.shared.data(for: request)
+            
+            guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
+                throw OMVAPIError.invalidResponse
+            }
+            
+            guard retryHttpResponse.statusCode == 200 else {
+                print("❌ HTTP Error after retry: \(retryHttpResponse.statusCode)")
+                throw OMVAPIError.serverError("HTTP \(retryHttpResponse.statusCode)")
+            }
+            
+            guard let retryJson = try JSONSerialization.jsonObject(with: retryData) as? [String: Any] else {
+                throw OMVAPIError.invalidResponse
+            }
+            
+            if let error = retryJson["error"] as? [String: Any],
+               let message = error["message"] as? String {
+                print("❌ API Error: \(message)")
+                throw OMVAPIError.serverError(message)
+            }
+            
+            return retryJson["response"] ?? retryJson
         }
         
         guard httpResponse.statusCode == 200 else {
