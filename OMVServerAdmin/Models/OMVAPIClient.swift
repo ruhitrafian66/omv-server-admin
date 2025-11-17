@@ -172,29 +172,42 @@ class OMVAPIClient {
     }
     
     private func parseCPUStats(from response: [String: Any]) throws -> CPUStats {
-        let cpuUsage = response["cpuUsage"] as? Double ?? 0.0
+        let cpuUsage = response["cpuUtilization"] as? Double ?? 0.0
+        print("🔍 Parsed CPU: \(cpuUsage)%")
         return CPUStats(currentUsage: cpuUsage, history: [])
     }
     
     private func parseMemoryStats(from response: [String: Any]) throws -> MemoryStats {
-        let memTotal = response["memTotal"] as? Int64 ?? 0
-        let memUsed = response["memUsed"] as? Int64 ?? 0
+        // OMV returns memory values as strings
+        let memTotalStr = response["memTotal"] as? String ?? "0"
+        let memUsedStr = response["memUsed"] as? String ?? "0"
+        
+        let memTotal = Int64(memTotalStr) ?? 0
+        let memUsed = Int64(memUsedStr) ?? 0
+        
+        print("🔍 Parsed Memory: \(memUsed) / \(memTotal) bytes")
         return MemoryStats(total: memTotal, used: memUsed)
     }
     
     private func parseFileSystemStats(from response: [String: Any]) throws -> [FileSystemStats] {
-        guard let data = response["data"] as? [[String: Any]] else {
+        // OMV returns file systems as an array directly in response
+        guard let data = response as? [[String: Any]] else {
+            print("🔍 File systems response is not an array")
             return []
         }
+        
+        print("🔍 Parsing \(data.count) file systems")
         
         return data.compactMap { item in
             guard let devicefile = item["devicefile"] as? String,
                   let available = item["available"] as? String,
                   let used = item["used"] as? String,
                   let percentage = item["percentage"] as? Int else {
+                print("🔍 Skipping file system - missing fields")
                 return nil
             }
             
+            print("🔍 Found file system: \(devicefile) at \(percentage)%")
             return FileSystemStats(
                 name: devicefile,
                 total: available,
