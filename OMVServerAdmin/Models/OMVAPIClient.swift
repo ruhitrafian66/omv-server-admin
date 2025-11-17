@@ -83,7 +83,7 @@ class OMVAPIClient {
             ]
         ]
         
-        let response: [String: Any] = try await request(endpoint: "/rpc.php", params: params)
+        let response = try await requestRaw(endpoint: "/rpc.php", params: params)
         return try parseFileSystemStats(from: response)
     }
     
@@ -171,6 +171,47 @@ class OMVAPIClient {
         return json["response"] as? [String: Any] ?? json
     }
     
+    private func requestRaw(endpoint: String, params: [String: Any], authenticated: Bool = true) async throws -> Any {
+        guard let url = URL(string: baseURL + endpoint) else {
+            throw OMVAPIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if authenticated, let token = sessionToken {
+            request.setValue(token, forHTTPHeaderField: "X-Openmediavault-Sessionid")
+        }
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: params)
+        
+        print("📤 API Request: \(params["service"] as? String ?? "").\(params["method"] as? String ?? "")")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw OMVAPIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            print("❌ HTTP Error: \(httpResponse.statusCode)")
+            throw OMVAPIError.serverError("HTTP \(httpResponse.statusCode)")
+        }
+        
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw OMVAPIError.invalidResponse
+        }
+        
+        if let error = json["error"] as? [String: Any],
+           let message = error["message"] as? String {
+            print("❌ API Error: \(message)")
+            throw OMVAPIError.serverError(message)
+        }
+        
+        return json["response"] ?? json
+    }
+    
     private func parseCPUStats(from response: [String: Any]) throws -> CPUStats {
         let cpuUsage = response["cpuUtilization"] as? Double ?? 0.0
         print("🔍 Parsed CPU: \(cpuUsage)%")
@@ -189,10 +230,10 @@ class OMVAPIClient {
         return MemoryStats(total: memTotal, used: memUsed)
     }
     
-    private func parseFileSystemStats(from response: [String: Any]) throws -> [FileSystemStats] {
-        // OMV returns file systems as an array directly in response
+    private func parseFileSystemStats(from response: Any) throws -> [FileSystemStats] {
+        // OMV returns file systems as an array
         guard let data = response as? [[String: Any]] else {
-            print("🔍 File systems response is not an array")
+            print("🔍 File systems response is not an array, got: \(type(of: response))")
             return []
         }
         
